@@ -62,9 +62,9 @@ class SqueezeExcitation(pl.LightningModule):
         super(SqueezeExcitation, self).__init__()
         self.se = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),  # C x H x W -> C x 1 x 1
-            nn.Conv2d(in_channels, reduced_dim, (1,)),
+            nn.Conv2d(in_channels, reduced_dim, 1),
             nn.SiLU(),
-            nn.Conv2d(reduced_dim, in_channels, (1,)),
+            nn.Conv2d(reduced_dim, in_channels, 1),
             nn.Sigmoid(),
         )
 
@@ -101,7 +101,7 @@ class InvertedResidualBlock(pl.LightningModule):
                 hidden_dim, hidden_dim, kernel_size, stride, padding, groups=hidden_dim,
             ),
             SqueezeExcitation(hidden_dim, reduced_dim),
-            nn.Conv2d(hidden_dim, out_channels, (1,), bias=False),
+            nn.Conv2d(hidden_dim, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
         )
 
@@ -128,12 +128,21 @@ class EfficientNet(pl.LightningModule):
         super(EfficientNet, self).__init__()
         num_classes = cf.num_classes[dataset_name]
         width_factor, depth_factor, dropout_rate = self.calculate_factors(version)
+
         last_channels = ceil(1280 * width_factor)
-        self.pool = nn.AdaptiveAvgPool2d(1)
+
+        phi, res, drop_rate = phi_values[version]
+
+        self.pool1 = nn.AdaptiveAvgPool2d((res, res))
+        self.pool2 = nn.AdaptiveAvgPool2d(1)
+
         self.features = self.create_features(width_factor, depth_factor, last_channels)
+
         self.classifier = nn.Sequential(
             nn.Dropout(dropout_rate), nn.Linear(last_channels, num_classes),
         )
+
+        self.loss = nn.CrossEntropyLoss()
 
     @staticmethod
     def calculate_factors(version, alpha=1.2, beta=1.1):
@@ -172,7 +181,9 @@ class EfficientNet(pl.LightningModule):
         return nn.Sequential(*features)
 
     def forward(self, x):
-        x = self.pool(self.features(x))
+        x = self.pool1(x)
+        features = self.features(x)
+        x = self.pool2(features)
         return self.classifier(x.view(x.shape[0], -1))
 
     def configure_optimizers(self):
@@ -181,11 +192,9 @@ class EfficientNet(pl.LightningModule):
 
     def training_step(self, batch, idx_batch):
         x, y = batch
-        b = x.size(0)
-        x = x.view(b, -1)
         logits = self(x)
         loss = self.loss(logits, y)
-        acc = train_accuracy(logits, y)
+        acc = train_accuracy(logits.argmax(1), y)
         pbar = {"train_acc": acc}
         return {"loss": loss, "progress_bar": pbar}
 
@@ -206,7 +215,7 @@ class EfficientNet(pl.LightningModule):
 
 def test():
     version = "b0"
-    dataset_name = "cifar100"
+    dataset_name = "cifar10"
     imagenet_dm = CifarDataModule(batch_size=20, dataset_name=dataset_name)
     model = EfficientNet(version=version, dataset_name=dataset_name)
     trainer = pl.Trainer(progress_bar_refresh_rate=20, max_epochs=1)
