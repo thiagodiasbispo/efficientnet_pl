@@ -97,12 +97,12 @@ class CifarDataModule(pl.LightningDataModule):
         else:
             assert False
 
-        val_size = int(len(dataset) * 0.1)
-        train_size = len(dataset) - val_size
-
         training_dataset = dataset(
             "data", train=True, download=False, transform=train_transform
         )
+
+        val_size = int(len(training_dataset) * 0.1)
+        train_size = len(training_dataset) - val_size
 
         test = dataset("data", train=False, download=False, transform=test_transform)
 

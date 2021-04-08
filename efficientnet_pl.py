@@ -1,12 +1,12 @@
 from math import ceil
 
+import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from torch import optim
-import pytorch_lightning as pl
 
-from data_module import ImageNetDataModule, CifarDataModule
 import config as cf
+from data_module import CifarDataModule
 
 base_model = [
     # expand_ratio, channels, repeats, stride, kernel_size
@@ -206,8 +206,9 @@ class EfficientNet(pl.LightningModule):
 
 def test():
     version = "b0"
-    imagenet_dm = CifarDataModule(batch_size=20)
-    model = EfficientNet(version=version, dataset_name="cifar100")
+    dataset_name = "cifar100"
+    imagenet_dm = CifarDataModule(batch_size=20, dataset_name=dataset_name)
+    model = EfficientNet(version=version, dataset_name=dataset_name)
     trainer = pl.Trainer(progress_bar_refresh_rate=20, max_epochs=1)
     trainer.fit(model, imagenet_dm)
 
