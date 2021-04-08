@@ -126,7 +126,7 @@ class InvertedResidualBlock(pl.LightningModule):
 class EfficientNet(pl.LightningModule):
     def __init__(self, version, dataset_name):
         super(EfficientNet, self).__init__()
-        num_classes = cf.num_classes[dataset_name]
+        self.num_classes = cf.num_classes[dataset_name]
         width_factor, depth_factor, dropout_rate = self.calculate_factors(version)
 
         last_channels = ceil(1280 * width_factor)
@@ -139,7 +139,7 @@ class EfficientNet(pl.LightningModule):
         self.features = self.create_features(width_factor, depth_factor, last_channels)
 
         self.classifier = nn.Sequential(
-            nn.Dropout(dropout_rate), nn.Linear(last_channels, num_classes),
+            nn.Dropout(dropout_rate), nn.Linear(last_channels, self.num_classes),
         )
 
         self.loss = nn.CrossEntropyLoss()
@@ -190,11 +190,19 @@ class EfficientNet(pl.LightningModule):
         optimizer = optim.SGD(self.parameters(), lr=1e-2)
         return optimizer
 
+    def loss_function(self, output, target):
+        one_hot = nn.functional.one_hot(target.long(), self.num_classes).to(self.device)
+        loss = nn.functional.binary_cross_entropy_with_logits(output, one_hot.float())
+
+        return loss
+
     def training_step(self, batch, idx_batch):
         x, y = batch
-        logits = self(x)
-        loss = self.loss(logits, y)
-        acc = train_accuracy(logits.argmax(1), y)
+        # b = x.size(0)
+        # x = x.view(b, -1)
+        z = self(x)
+        loss = self.loss_function(z, y)
+        acc = train_accuracy(nn.functional.softmax(z, 1).cpu(), y.cpu())
         pbar = {"train_acc": acc}
         return {"loss": loss, "progress_bar": pbar}
 
@@ -216,10 +224,10 @@ class EfficientNet(pl.LightningModule):
 def test():
     version = "b0"
     dataset_name = "cifar10"
-    imagenet_dm = CifarDataModule(batch_size=20, dataset_name=dataset_name)
+    cifar_dm = CifarDataModule(batch_size=10, dataset_name=dataset_name)
     model = EfficientNet(version=version, dataset_name=dataset_name)
-    trainer = pl.Trainer(progress_bar_refresh_rate=20, max_epochs=1)
-    trainer.fit(model, imagenet_dm)
+    trainer = pl.Trainer(progress_bar_refresh_rate=20, max_epochs=1, gpus=1)
+    trainer.fit(model, cifar_dm)
 
 
 if __name__ == "__main__":
