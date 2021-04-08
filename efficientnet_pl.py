@@ -1,6 +1,7 @@
 from math import ceil
 
 import pytorch_lightning as pl
+from pytorch_lightning import loggers
 import torch
 import torch.nn as nn
 from torch import optim
@@ -226,7 +227,12 @@ def test():
     dataset_name = "cifar10"
     cifar_dm = CifarDataModule(batch_size=10, dataset_name=dataset_name)
     model = EfficientNet(version=version, dataset_name=dataset_name)
-    trainer = pl.Trainer(progress_bar_refresh_rate=20, max_epochs=1, gpus=1)
+    logger = loggers.TensorBoardLogger(f"lightning_logs/{version}")
+
+    trainer = pl.Trainer(
+        progress_bar_refresh_rate=20, max_epochs=1, gpus=1, logger=logger
+    )
+
     trainer.fit(model, cifar_dm)
 
 
