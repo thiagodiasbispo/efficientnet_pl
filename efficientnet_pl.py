@@ -20,16 +20,28 @@ base_model = [
     [6, 320, 1, 1, 3],
 ]
 
+# phi_values = {
+#     # tuple of: (phi_value, resolution, drop_rate)
+#     "b0": (0, 224, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
+#     "b1": (0.5, 240, 0.2),
+#     "b2": (1, 260, 0.3),
+#     "b3": (2, 300, 0.3),
+#     "b4": (3, 380, 0.4),
+#     "b5": (4, 456, 0.4),
+#     "b6": (5, 528, 0.5),
+#     "b7": (6, 600, 0.5),
+# }
+
 phi_values = {
     # tuple of: (phi_value, resolution, drop_rate)
     "b0": (0, 224, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
-    "b1": (0.5, 240, 0.2),
-    "b2": (1, 260, 0.3),
-    "b3": (2, 300, 0.3),
-    "b4": (3, 380, 0.4),
-    "b5": (4, 456, 0.4),
-    "b6": (5, 528, 0.5),
-    "b7": (6, 600, 0.5),
+    "b1": (0.5, int(32 * (240 / 224)), 0.2),
+    "b2": (1, int(32 * (260 / 224)), 0.3),
+    "b3": (2, int(32 * (300 / 224)), 0.3),
+    "b4": (3, int(32 * (380 / 224)), 0.4),
+    "b5": (4, int(32 * (456 / 224)), 0.4),
+    "b6": (5, int(32 * (528 / 224)), 0.5),
+    "b7": (6, int(32 * (600 / 224)), 0.5),
 }
 
 
@@ -227,7 +239,7 @@ def test():
     dataset_name = "cifar10"
     cifar_dm = CifarDataModule(batch_size=10, dataset_name=dataset_name)
     model = EfficientNet(version=version, dataset_name=dataset_name)
-    logger = loggers.TensorBoardLogger(f"lightning_logs/{version}")
+    logger = loggers.TensorBoardLogger(f"lightning_logs/{dataset_name}/{version}")
 
     trainer = pl.Trainer(
         progress_bar_refresh_rate=20, max_epochs=1, gpus=1, logger=logger
