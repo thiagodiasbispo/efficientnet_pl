@@ -55,6 +55,7 @@ class EfficientNet(pl.LightningModule):
     def __init__(self, model_name, num_classes, **override_params):
         super(EfficientNet, self).__init__()
         self.num_classes = num_classes
+        self.iteration = 0
         self.model = EfficientNetPyt.from_name(
             model_name, num_classes=num_classes, **override_params
         )
@@ -74,26 +75,99 @@ class EfficientNet(pl.LightningModule):
         return loss
 
     def training_step(self, batch, idx_batch):
+        self.iteration += 1
         x, y = batch
         z = self(x)
         loss = self.loss(z, y)  # self.loss_function(z, y)
         acc = train_accuracy(nn.functional.softmax(z, 1).argmax(1).cpu(), y.cpu())
-        pbar = {"train_acc": acc}
-        return {"loss": loss, "progress_bar": pbar}
 
-    def validation_step(self, batch, batch_idx):
+        self.logger.experiment.add_scalar("train_loss", loss, self.iteration)
+
+        self.log(
+            "train_loss",
+            loss,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=False,
+            logger=True,
+        )
+
+        self.logger.experiment.add_scalar(
+            "train_acc", acc, self.iteration,
+        )
+        self.log(
+            "train_acc", acc, on_step=True, on_epoch=False, prog_bar=True, logger=True,
+        )
+
+        # pbar = {"train_acc": acc}
+        return {"loss": loss, "train_acc": acc}
+
+    # def validation_step(self, batch, batch_idx):
+    #     results = self.training_step(batch, batch_idx)
+    #     results["progress_bar"]["val_acc"] = results["progress_bar"]["train_acc"]
+    #     del results["progress_bar"]["train_acc"]
+    #     return results
+
+    def test_step(self, batch, batch_idx):
         results = self.training_step(batch, batch_idx)
-        results["progress_bar"]["val_acc"] = results["progress_bar"]["train_acc"]
-        del results["progress_bar"]["train_acc"]
-        return results
+        self.logger.experiment.add_scalar(
+            "test_acc", results["train_acc"], self.iteration,
+        )
 
-    def validation_epoch_end(self, val_step_outputs):
-        avg_val_loss = torch.tensor([x["loss"] for x in val_step_outputs]).mean()
-        avg_val_acc = torch.tensor(
-            [x["progress_bar"]["val_acc"] for x in val_step_outputs]
-        ).mean()
-        pbar = {"avg_val_acc": avg_val_acc}
-        return {"val_loss": avg_val_loss, "progress_bar": pbar}
+        self.logger.experiment.add_scalar(
+            "test_loss", results["loss"], self.iteration,
+        )
+
+        self.log(
+            "test_loss",
+            results["loss"],
+            # on_step=True,
+            # on_epoch=False,
+            # prog_bar=True,
+            # logger=True,
+        )
+
+        self.log(
+            "test_acc",
+            results["train_acc"],
+            # on_step=True,
+            # on_epoch=False,
+            # prog_bar=True,
+            # logger=True,
+        )
+
+    # def validation_epoch_end(self, test_step_outputs):
+    #     avg_val_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
+    #     avg_val_acc = torch.tensor(
+    #         [x["progress_bar"]["val_acc"] for x in test_step_outputs]
+    #     ).mean()
+    #     pbar = {"avg_val_acc": avg_val_acc}
+    #     return {"val_loss": avg_val_loss, "progress_bar": pbar}
+
+    def test_epoch_end(self, test_step_outputs):
+        avg_test_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
+        avg_test_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
+
+        self.log(
+            "avg_test_loss",
+            avg_test_loss,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
+
+        self.log(
+            "avg_test_acc",
+            avg_test_acc,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
+        #
+        # pbar = {"avg_test_acc": avg_val_acc}
+        # return {"test_loss": avg_val_loss, "progress_bar": pbar}
 
 
 def train(
@@ -121,4 +195,4 @@ def train(
 
 
 if __name__ == "__main__":
-    train()
+    train(batch_size=30)
