@@ -121,19 +121,19 @@ class EfficientNet(pl.LightningModule):
         self.log(
             "test_loss",
             results["loss"],
-            # on_step=True,
-            # on_epoch=False,
-            # prog_bar=True,
-            # logger=True,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=True,
         )
 
         self.log(
             "test_acc",
             results["train_acc"],
-            # on_step=True,
-            # on_epoch=False,
-            # prog_bar=True,
-            # logger=True,
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+            logger=True,
         )
 
     # def validation_epoch_end(self, test_step_outputs):
@@ -151,7 +151,7 @@ class EfficientNet(pl.LightningModule):
         self.log(
             "avg_test_loss",
             avg_test_loss,
-            on_step=False,
+            on_step=True,
             on_epoch=True,
             prog_bar=True,
             logger=True,
@@ -160,7 +160,7 @@ class EfficientNet(pl.LightningModule):
         self.log(
             "avg_test_acc",
             avg_test_acc,
-            on_step=False,
+            on_step=True,
             on_epoch=True,
             prog_bar=True,
             logger=True,
