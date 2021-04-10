@@ -106,10 +106,10 @@ class CifarDataModule(pl.LightningDataModule):
 
         test = dataset("data", train=False, download=False, transform=test_transform)
 
-        train, imagenet_val = random_split(training_dataset, [train_size, val_size])
+        train, val = random_split(training_dataset, [train_size, val_size])
 
         self.train_dataset = train
-        self.val_dataset = imagenet_val
+        self.val_dataset = val
         self.test_dataset = test
 
     def train_dataloader(self):
