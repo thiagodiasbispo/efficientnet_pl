@@ -74,30 +74,36 @@ class EfficientNet(pl.LightningModule):
 
         return loss
 
-    def training_step(self, batch, idx_batch):
+    def training_step(self, batch, idx_batch, log=True):
         self.iteration += 1
         x, y = batch
         z = self(x)
         loss = self.loss(z, y)  # self.loss_function(z, y)
         acc = train_accuracy(nn.functional.softmax(z, 1).argmax(1).cpu(), y.cpu())
 
-        self.logger.experiment.add_scalar("train_loss", loss, self.iteration)
+        if log:
+            self.logger.experiment.add_scalar("train_loss", loss, self.iteration)
 
-        self.log(
-            "train_loss",
-            loss,
-            on_step=False,
-            on_epoch=True,
-            prog_bar=False,
-            logger=True,
-        )
+            self.log(
+                "train_loss",
+                loss,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=False,
+                logger=True,
+            )
 
-        self.logger.experiment.add_scalar(
-            "train_acc", acc, self.iteration,
-        )
-        self.log(
-            "train_acc", acc, on_step=False, on_epoch=True, prog_bar=True, logger=True
-        )
+            self.logger.experiment.add_scalar(
+                "train_acc", acc, self.iteration,
+            )
+            self.log(
+                "train_acc",
+                acc,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
 
         # pbar = {"train_acc": acc}
         # return {"loss": loss, "progress_bar": pbar}
@@ -111,7 +117,7 @@ class EfficientNet(pl.LightningModule):
     #     return results
 
     def validation_step(self, batch, batch_idx):
-        results = self.training_step(batch, batch_idx)
+        results = self.training_step(batch, batch_idx, False)
 
         # results["progress_bar"]["test_acc"] = results["progress_bar"]["train_acc"]
         # results["progress_bar"]["test_loss"] = results["loss"]
