@@ -130,18 +130,18 @@ class EfficientNet(pl.LightningModule):
         self.log(
             "test_loss",
             results["loss"],
-            on_epoch=False,
+            on_epoch=True,
             prog_bar=False,
-            on_step=True,
+            on_step=False,
             logger=True,
         )
 
         self.log(
             "test_acc",
             results["train_acc"],
-            on_epoch=False,
+            on_epoch=True,
             prog_bar=False,
-            on_step=True,
+            on_step=False,
             logger=True,
         )
 
