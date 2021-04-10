@@ -91,7 +91,6 @@ class CifarDataModule(pl.LightningDataModule):
 
         if self.dataset_name == "cifar100":
             dataset = datasets.CIFAR100
-
         elif self.dataset_name == "cifar10":
             dataset = datasets.CIFAR10
         else:

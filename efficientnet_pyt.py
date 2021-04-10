@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from torch import optim
 from efficientnet_pytorch import EfficientNet as EfficientNetPyt
+from torch.nn import CrossEntropyLoss
+
 import config as cf
 from data_module import CifarDataModule
 
@@ -56,6 +58,7 @@ class EfficientNet(pl.LightningModule):
         self.model = EfficientNetPyt.from_name(
             model_name, num_classes=num_classes, **override_params
         )
+        self.loss = CrossEntropyLoss()
 
     def forward(self, x):
         return self.model(x)
@@ -73,8 +76,8 @@ class EfficientNet(pl.LightningModule):
     def training_step(self, batch, idx_batch):
         x, y = batch
         z = self(x)
-        loss = self.loss_function(z, y)
-        acc = train_accuracy(nn.functional.softmax(z, 1).cpu(), y.cpu())
+        loss = self.loss(z, y)  # self.loss_function(z, y)
+        acc = train_accuracy(nn.functional.softmax(z, 1).argmax(1).cpu(), y.cpu())
         pbar = {"train_acc": acc}
         return {"loss": loss, "progress_bar": pbar}
 
