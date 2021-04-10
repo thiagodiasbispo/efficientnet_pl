@@ -96,7 +96,13 @@ class EfficientNet(pl.LightningModule):
         return {"val_loss": avg_val_loss, "progress_bar": pbar}
 
 
-def train(dataset_name="cifar10", version="efficientnet-b0", batch_size=10, epochs=100):
+def train(
+    dataset_name="cifar10",
+    version="efficientnet-b0",
+    batch_size=10,
+    epochs=100,
+    checkpoint=None,
+):
     cifar_dm = CifarDataModule(batch_size=batch_size, dataset_name=dataset_name)
     model = EfficientNet(
         model_name=version, num_classes=cf.num_classes[dataset_name], image_size=32
@@ -104,7 +110,11 @@ def train(dataset_name="cifar10", version="efficientnet-b0", batch_size=10, epoc
     logger = loggers.TensorBoardLogger(f"lightning_logs/{dataset_name}/{version}")
 
     trainer = pl.Trainer(
-        progress_bar_refresh_rate=20, max_epochs=epochs, gpus=1, logger=logger
+        progress_bar_refresh_rate=20,
+        max_epochs=epochs,
+        gpus=1,
+        logger=logger,
+        resume_from_checkpoint=checkpoint,
     )
 
     trainer.fit(model, cifar_dm)
