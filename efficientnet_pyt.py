@@ -86,9 +86,9 @@ class EfficientNet(pl.LightningModule):
         self.log(
             "train_loss",
             loss,
-            on_step=True,
-            on_epoch=False,
-            prog_bar=False,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
             logger=True,
         )
 
@@ -96,8 +96,11 @@ class EfficientNet(pl.LightningModule):
             "train_acc", acc, self.iteration,
         )
         self.log(
-            "train_acc", acc, on_step=True, on_epoch=False, prog_bar=True, logger=True,
+            "train_acc", acc, on_step=False, on_epoch=True, prog_bar=True, logger=True
         )
+
+        # pbar = {"train_acc": acc}
+        # return {"loss": loss, "progress_bar": pbar}
 
         return {"loss": loss, "train_acc": acc}
 
@@ -107,18 +110,30 @@ class EfficientNet(pl.LightningModule):
     #     del results["progress_bar"]["train_acc"]
     #     return results
 
-    def test_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):
         results = self.training_step(batch, batch_idx)
-        self.logger.experiment.add_scalar(
-            "test_acc", results["train_acc"], self.iteration,
-        )
 
-        self.logger.experiment.add_scalar(
-            "test_loss", results["loss"], self.iteration,
-        )
+        # results["progress_bar"]["test_acc"] = results["progress_bar"]["train_acc"]
+        # results["progress_bar"]["test_loss"] = results["loss"]
+        # del results["progress_bar"]["train_acc"]
+
+        # return results
+
+        # self.logger.experiment.add_scalar(
+        #     "test_acc", results["train_acc"], self.iteration,
+        # )
+        #
+        # self.logger.experiment.add_scalar(
+        #     "test_loss", results["loss"], self.iteration,
+        # )
 
         self.log(
-            "test_loss", results["loss"], on_epoch=False, prog_bar=False, on_step=True
+            "test_loss",
+            results["loss"],
+            on_epoch=False,
+            prog_bar=False,
+            on_step=True,
+            logger=False,
         )
 
         self.log(
@@ -127,6 +142,7 @@ class EfficientNet(pl.LightningModule):
             on_epoch=False,
             prog_bar=False,
             on_step=True,
+            logger=False,
         )
 
     # def validation_epoch_end(self, test_step_outputs):
@@ -137,7 +153,12 @@ class EfficientNet(pl.LightningModule):
     #     pbar = {"avg_val_acc": avg_val_acc}
     #     return {"val_loss": avg_val_loss, "progress_bar": pbar}
 
-    def test_epoch_end(self, test_step_outputs):
+    def validation_epoch_end(self, test_step_outputs):
+        # avg_val_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
+        # avg_val_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
+        # pbar = {"avg_test_acc": avg_val_acc, "avg_val_loss": avg_val_loss}
+        # return {"test_loss": avg_val_loss, "progress_bar": pbar}
+
         avg_test_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
         avg_test_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
 
@@ -145,14 +166,20 @@ class EfficientNet(pl.LightningModule):
             "avg_test_acc", avg_test_acc, self.iteration,
         )
 
-        self.logger.experiment.add_scalar("avg_test_loss", avg_test_acc, self.iteration)
+        self.logger.experiment.add_scalar(
+            "avg_test_loss", avg_test_loss, self.iteration
+        )
 
-        self.log("avg_test_loss", avg_test_loss, on_epoch=True, prog_bar=True)
+        self.log(
+            "avg_test_loss", avg_test_loss, on_epoch=True, prog_bar=True, on_step=False
+        )
 
-        self.log("avg_test_acc", avg_test_acc, on_epoch=True, prog_bar=True)
+        self.log(
+            "avg_test_acc", avg_test_acc, on_epoch=True, prog_bar=True, on_step=False
+        )
 
-        # pbar = {"avg_test_acc": avg_val_acc}
-        # return {"test_loss": avg_val_loss, "progress_bar": pbar}
+        # pbar = {"avg_test_acc": avg_test_acc}
+        # return {"test_loss": avg_test_loss, "progress_bar": pbar}
 
 
 def train(
@@ -163,6 +190,7 @@ def train(
     checkpoint=None,
 ):
     cifar_dm = CifarDataModule(batch_size=batch_size, dataset_name=dataset_name)
+
     model = EfficientNet(
         model_name=version, num_classes=cf.num_classes[dataset_name], image_size=32
     )
