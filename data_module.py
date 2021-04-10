@@ -121,7 +121,9 @@ class CifarDataModule(pl.LightningDataModule):
         )
 
     def val_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size)
+        return DataLoader(
+            self.test_dataset, batch_size=self.batch_size, num_workers=mp.cpu_count()
+        )
 
     def test_dataloader(self):
         return DataLoader(

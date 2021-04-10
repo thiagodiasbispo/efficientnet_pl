@@ -88,7 +88,7 @@ class EfficientNet(pl.LightningModule):
             loss,
             on_step=False,
             on_epoch=True,
-            prog_bar=True,
+            prog_bar=False,
             logger=True,
         )
 
@@ -119,13 +119,13 @@ class EfficientNet(pl.LightningModule):
 
         # return results
 
-        # self.logger.experiment.add_scalar(
-        #     "test_acc", results["train_acc"], self.iteration,
-        # )
-        #
-        # self.logger.experiment.add_scalar(
-        #     "test_loss", results["loss"], self.iteration,
-        # )
+        self.logger.experiment.add_scalar(
+            "test_acc", results["train_acc"], self.iteration,
+        )
+
+        self.logger.experiment.add_scalar(
+            "test_loss", results["loss"], self.iteration,
+        )
 
         self.log(
             "test_loss",
@@ -133,7 +133,7 @@ class EfficientNet(pl.LightningModule):
             on_epoch=False,
             prog_bar=False,
             on_step=True,
-            logger=False,
+            logger=True,
         )
 
         self.log(
@@ -142,8 +142,10 @@ class EfficientNet(pl.LightningModule):
             on_epoch=False,
             prog_bar=False,
             on_step=True,
-            logger=False,
+            logger=True,
         )
+
+        return {"test_acc": results["train_acc"], "loss": results["loss"]}
 
     # def validation_epoch_end(self, test_step_outputs):
     #     avg_val_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
@@ -170,9 +172,9 @@ class EfficientNet(pl.LightningModule):
             "avg_test_loss", avg_test_loss, self.iteration
         )
 
-        self.log(
-            "avg_test_loss", avg_test_loss, on_epoch=True, prog_bar=True, on_step=False
-        )
+        # self.log(
+        #     "avg_test_loss", avg_test_loss, on_epoch=True, prog_bar=True, on_step=False
+        # )
 
         self.log(
             "avg_test_acc", avg_test_acc, on_epoch=True, prog_bar=True, on_step=False
