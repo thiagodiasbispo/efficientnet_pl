@@ -148,6 +148,10 @@ class EfficientNet(pl.LightningModule):
         avg_test_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
         avg_test_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
 
+        self.logger.experiment.add_scalar(
+            "avg_test_acc", avg_test_acc, self.iteration,
+        )
+
         self.log(
             "avg_test_loss",
             avg_test_loss,
