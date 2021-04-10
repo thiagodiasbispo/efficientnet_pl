@@ -99,7 +99,6 @@ class EfficientNet(pl.LightningModule):
             "train_acc", acc, on_step=True, on_epoch=False, prog_bar=True, logger=True,
         )
 
-        # pbar = {"train_acc": acc}
         return {"loss": loss, "train_acc": acc}
 
     # def validation_step(self, batch, batch_idx):
@@ -119,21 +118,15 @@ class EfficientNet(pl.LightningModule):
         )
 
         self.log(
-            "test_loss",
-            results["loss"],
-            on_step=True,
-            on_epoch=False,
-            prog_bar=True,
-            logger=True,
+            "test_loss", results["loss"], on_epoch=False, prog_bar=False, on_step=True
         )
 
         self.log(
             "test_acc",
             results["train_acc"],
-            on_step=True,
             on_epoch=False,
-            prog_bar=True,
-            logger=True,
+            prog_bar=False,
+            on_step=True,
         )
 
     # def validation_epoch_end(self, test_step_outputs):
@@ -152,24 +145,12 @@ class EfficientNet(pl.LightningModule):
             "avg_test_acc", avg_test_acc, self.iteration,
         )
 
-        self.log(
-            "avg_test_loss",
-            avg_test_loss,
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
+        self.logger.experiment.add_scalar("avg_test_loss", avg_test_acc, self.iteration)
 
-        self.log(
-            "avg_test_acc",
-            avg_test_acc,
-            on_step=True,
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        #
+        self.log("avg_test_loss", avg_test_loss, on_epoch=True, prog_bar=True)
+
+        self.log("avg_test_acc", avg_test_acc, on_epoch=True, prog_bar=True)
+
         # pbar = {"avg_test_acc": avg_val_acc}
         # return {"test_loss": avg_val_loss, "progress_bar": pbar}
 
