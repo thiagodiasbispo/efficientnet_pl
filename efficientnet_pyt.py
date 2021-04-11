@@ -196,13 +196,22 @@ def train(
     batch_size=10,
     epochs=100,
     checkpoint=None,
+    output_path=None,
+    **model_params,
 ):
     cifar_dm = CifarDataModule(batch_size=batch_size, dataset_name=dataset_name)
 
     model = EfficientNet(
-        model_name=version, num_classes=cf.num_classes[dataset_name], image_size=32
+        model_name=version,
+        num_classes=cf.num_classes[dataset_name],
+        image_size=32,
+        **model_params,
     )
-    logger = loggers.TensorBoardLogger(f"lightning_logs/{dataset_name}/{version}")
+
+    if output_path is None:
+        output_path = f"lightning_logs/{dataset_name}/{version}"
+
+    logger = loggers.TensorBoardLogger(output_path)
 
     trainer = pl.Trainer(
         progress_bar_refresh_rate=20,
