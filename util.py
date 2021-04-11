@@ -3,9 +3,14 @@ from glob import glob
 
 def recover_last_check_point(path):
     path_versions = glob(f"{path}/*")
+
+    if not path_versions:
+        return None
+
     last_path = max(path_versions, key=lambda p: int(p.split("_")[-1]))
 
     check_points = glob(f"{last_path}/checkpoints/*")
+
     return check_points[0] if check_points else None
 
 
