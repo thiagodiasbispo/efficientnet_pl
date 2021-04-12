@@ -243,7 +243,9 @@ def test(model, dataset):
     return accuracy_score(targets, preds)
 
 
-def train_test(dataset_name, batch_size, num_classes, model_name, checkpoint):
+def train_test(dataset_name, batch_size, model_name, checkpoint):
+
+    num_classes = cf.num_classes[dataset_name]
     dataset = CifarDataModule(dataset_name=dataset_name, batch_size=batch_size)
 
     dataset.setup(None)
@@ -266,7 +268,7 @@ if __name__ == "__main__":
         "efficientnet-b0/default/version_1/checkpoints/epoch=3-step=66.ckpt"
     )
 
-    train_acc, test_acc = train_test("cifar10", 30, 10, "efficientnet-b0", checkpoint)
+    train_acc, test_acc = train_test("cifar10", 30, "efficientnet-b0", checkpoint)
 
     # dataset = CifarDataModule(dataset_name="cifar10", batch_size=30)
     #
