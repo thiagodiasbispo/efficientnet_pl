@@ -1,12 +1,11 @@
-from math import ceil
-
 import pytorch_lightning as pl
-from pytorch_lightning import loggers
 import torch
 import torch.nn as nn
-from torch import optim
 from efficientnet_pytorch import EfficientNet as EfficientNetPyt
+from pytorch_lightning import loggers
+from torch import optim
 from torch.nn import CrossEntropyLoss
+from sklearn.metrics import accuracy_score
 
 import config as cf
 from data_module import CifarDataModule
@@ -224,5 +223,60 @@ def train(
     trainer.fit(model, cifar_dm)
 
 
+def test(model, dataset):
+    preds = []
+    targets = []
+    device = (
+        torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+    )
+
+    model.to(device)
+
+    model.eval()
+    for image, target in dataset:
+        image = image.to(device)
+        target = target.numpy().tolist()
+        pred = nn.functional.softmax(model(image), 1).argmax(1).cpu().numpy().tolist()
+        preds.extend(pred)
+        targets.extend(target)
+
+    return accuracy_score(targets, preds)
+
+
+def train_test(dataset_name, batch_size, num_classes, model_name, checkpoint):
+    dataset = CifarDataModule(dataset_name=dataset_name, batch_size=batch_size)
+
+    dataset.setup(None)
+
+    model = EfficientNet.load_from_checkpoint(
+        checkpoint, model_name=model_name, num_classes=num_classes
+    )
+
+    test_acc = test(model, dataset.test_dataloader())
+    train_acc = test(model, dataset.train_dataloader())
+
+    return train_acc, test_acc
+
+
 if __name__ == "__main__":
-    train(batch_size=30)
+    # train(batch_size=30)
+
+    checkpoint = (
+        "/home/thiago/projects/efficientnet_pl/lightning_logs/cifar10/"
+        "efficientnet-b0/default/version_1/checkpoints/epoch=3-step=66.ckpt"
+    )
+
+    train_acc, test_acc = train_test("cifar10", 30, 10, "efficientnet-b0", checkpoint)
+
+    # dataset = CifarDataModule(dataset_name="cifar10", batch_size=30)
+    #
+    # dataset.setup(None)
+    #
+    # model = EfficientNet.load_from_checkpoint(
+    #     checkpoint, model_name="efficientnet-b0", num_classes=10
+    # )
+    #
+    # test_acc = test(model, dataset.test_dataloader())
+    print(f"Test: {test_acc}")
+    # train_acc = test(model, dataset.train_dataloader())
+    print(f"Train: {train_acc}")

@@ -26,7 +26,7 @@ import config as cf
 #         training_dataset = datasets.ImageNet(
 #             "data", train=True, download=False, transform=transform
 #         )
-#         test_dataset = datasets.ImageNet(
+#         dataset = datasets.ImageNet(
 #             "data", train=False, download=False, transform=transform
 #         )
 #
@@ -36,7 +36,7 @@ import config as cf
 #         # assign to use in dataloaders
 #         self.train_dataset = training_dataset
 #         # self.val_dataset = imagenet_val
-#         self.test_dataset = test_dataset
+#         self.dataset = dataset
 #
 #     def train_dataloader(self):
 #         return DataLoader(
@@ -48,7 +48,7 @@ import config as cf
 #
 #     def test_dataloader(self):
 #         return DataLoader(
-#             self.test_dataset, batch_size=self.batch_size, num_workers=mp.cpu_count()
+#             self.dataset, batch_size=self.batch_size, num_workers=mp.cpu_count()
 #         )
 #
 
