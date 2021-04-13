@@ -33,15 +33,15 @@ base_model = [
 # }
 
 phi_values = {
-    # tuple of: (phi_value, resolution, drop_rate)
-    "b0": (0, 32, 0.2),
-    "b1": (0.5, int(32 * (240 / 224)), 0.2),  # resolution = 34
-    "b2": (1, int(32 * (260 / 224)), 0.3),  # resolution = 37
-    "b3": (2, int(32 * (300 / 224)), 0.3),  # resolution = 42
-    "b4": (3, int(32 * (380 / 224)), 0.4),  # resolution = 54
-    "b5": (4, int(32 * (456 / 224)), 0.4),  # resolution = 65
-    "b6": (5, int(32 * (528 / 224)), 0.5),  # resolution = 75
-    "b7": (6, int(32 * (600 / 224)), 0.5),  # resolution = 58
+    # tuple of: (width_coefficient, depth_coefficient, resolution, drop_rate)
+    "b0": (1, 1, 32, 0.2),
+    "b1": (1, 1.1, int(32 * (240 / 224)), 0.2),  # resolution = 34
+    "b2": (1.1, 1.2, int(32 * (260 / 224)), 0.3),  # resolution = 37
+    "b3": (1.2, 1.4, int(32 * (300 / 224)), 0.3),  # resolution = 42
+    "b4": (1.4, 1.8, int(32 * (380 / 224)), 0.4),  # resolution = 54
+    "b5": (1.6, 2.2, int(32 * (456 / 224)), 0.4),  # resolution = 65
+    "b6": (1.8, 2.6, int(32 * (528 / 224)), 0.5),  # resolution = 75
+    "b7": (2, 3.1, int(32 * (600 / 224)), 0.5),  # resolution = 85
 }
 
 
@@ -141,11 +141,14 @@ class EfficientNet(pl.LightningModule):
         super(EfficientNet, self).__init__()
         self.iteration = 0
         self.num_classes = cf.num_classes[dataset_name]
+
         width_factor, depth_factor, dropout_rate = self.calculate_factors(version)
 
         last_channels = ceil(1280 * width_factor)
 
-        phi, res, drop_rate = phi_values[version]
+        _, res, drop_rate = phi_values[version]
+
+        print(_, res, drop_rate)
 
         self.pool1 = nn.AdaptiveAvgPool2d((res, res))
         self.pool2 = nn.AdaptiveAvgPool2d(1)
@@ -159,10 +162,15 @@ class EfficientNet(pl.LightningModule):
         self.loss = nn.CrossEntropyLoss()
 
     @staticmethod
-    def calculate_factors(version, alpha=1.2, beta=1.1):
+    def calculate_factors_old(version, alpha=1.2, beta=1.1):
         phi, res, drop_rate = phi_values[version]
         depth_factor = alpha ** phi
         width_factor = beta ** phi
+        return width_factor, depth_factor, drop_rate
+
+    @staticmethod
+    def calculate_factors(version):
+        width_factor, depth_factor, res, drop_rate = phi_values[version]
         return width_factor, depth_factor, drop_rate
 
     @staticmethod
@@ -208,7 +216,7 @@ class EfficientNet(pl.LightningModule):
         self.iteration += 1
         x, y = batch
         z = self(x)
-        loss = self.loss(z, y)  # self.loss_function(z, y)
+        loss = self.loss(z, y)
         acc = train_accuracy(nn.functional.softmax(z, 1).argmax(1).cpu(), y.cpu())
 
         if log:
