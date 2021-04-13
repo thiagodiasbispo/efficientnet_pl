@@ -104,25 +104,10 @@ class EfficientNet(pl.LightningModule):
                 logger=True,
             )
 
-        # pbar = {"train_acc": acc}
-        # return {"loss": loss, "progress_bar": pbar}
-
         return {"loss": loss, "train_acc": acc}
-
-    # def validation_step(self, batch, batch_idx):
-    #     results = self.training_step(batch, batch_idx)
-    #     results["progress_bar"]["val_acc"] = results["progress_bar"]["train_acc"]
-    #     del results["progress_bar"]["train_acc"]
-    #     return results
 
     def validation_step(self, batch, batch_idx):
         results = self.training_step(batch, batch_idx, False)
-
-        # results["progress_bar"]["test_acc"] = results["progress_bar"]["train_acc"]
-        # results["progress_bar"]["test_loss"] = results["loss"]
-        # del results["progress_bar"]["train_acc"]
-
-        # return results
 
         self.logger.experiment.add_scalar(
             "test_acc", results["train_acc"], self.iteration,
@@ -152,20 +137,7 @@ class EfficientNet(pl.LightningModule):
 
         return {"test_acc": results["train_acc"], "loss": results["loss"]}
 
-    # def validation_epoch_end(self, test_step_outputs):
-    #     avg_val_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
-    #     avg_val_acc = torch.tensor(
-    #         [x["progress_bar"]["val_acc"] for x in test_step_outputs]
-    #     ).mean()
-    #     pbar = {"avg_val_acc": avg_val_acc}
-    #     return {"val_loss": avg_val_loss, "progress_bar": pbar}
-
     def validation_epoch_end(self, test_step_outputs):
-        # avg_val_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
-        # avg_val_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
-        # pbar = {"avg_test_acc": avg_val_acc, "avg_val_loss": avg_val_loss}
-        # return {"test_loss": avg_val_loss, "progress_bar": pbar}
-
         avg_test_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
         avg_test_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
 
@@ -177,16 +149,9 @@ class EfficientNet(pl.LightningModule):
             "avg_test_loss", avg_test_loss, self.iteration
         )
 
-        # self.log(
-        #     "avg_test_loss", avg_test_loss, on_epoch=True, prog_bar=True, on_step=False
-        # )
-
         self.log(
             "avg_test_acc", avg_test_acc, on_epoch=True, prog_bar=True, on_step=False
         )
-
-        # pbar = {"avg_test_acc": avg_test_acc}
-        # return {"test_loss": avg_test_loss, "progress_bar": pbar}
 
 
 def train(

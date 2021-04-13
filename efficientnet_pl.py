@@ -34,7 +34,7 @@ base_model = [
 
 phi_values = {
     # tuple of: (phi_value, resolution, drop_rate)
-    "b0": (0, 224, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
+    "b0": (0, 32, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
     "b1": (0.5, int(32 * (240 / 224)), 0.2),
     "b2": (1, int(32 * (260 / 224)), 0.3),
     "b3": (2, int(32 * (300 / 224)), 0.3),
@@ -139,6 +139,7 @@ class InvertedResidualBlock(pl.LightningModule):
 class EfficientNet(pl.LightningModule):
     def __init__(self, version, dataset_name):
         super(EfficientNet, self).__init__()
+        self.iteration = 0
         self.num_classes = cf.num_classes[dataset_name]
         width_factor, depth_factor, dropout_rate = self.calculate_factors(version)
 
@@ -182,7 +183,7 @@ class EfficientNet(pl.LightningModule):
                         expand_ratio=expand_ratio,
                         stride=stride if layer == 0 else 1,
                         kernel_size=kernel_size,
-                        padding=kernel_size // 2,  # if k=1:pad=0, k=3:pad=1, k=5:pad=2
+                        padding=kernel_size // 2,
                     )
                 )
                 in_channels = out_channels
@@ -209,44 +210,115 @@ class EfficientNet(pl.LightningModule):
 
         return loss
 
-    def training_step(self, batch, idx_batch):
+    def training_step(self, batch, idx_batch, log=True):
+        self.iteration += 1
         x, y = batch
-        # b = x.size(0)
-        # x = x.view(b, -1)
         z = self(x)
-        loss = self.loss_function(z, y)
-        acc = train_accuracy(nn.functional.softmax(z, 1).cpu(), y.cpu())
-        pbar = {"train_acc": acc}
-        return {"loss": loss, "progress_bar": pbar}
+        loss = self.loss(z, y)  # self.loss_function(z, y)
+        acc = train_accuracy(nn.functional.softmax(z, 1).argmax(1).cpu(), y.cpu())
+
+        if log:
+            self.logger.experiment.add_scalar("train_loss", loss, self.iteration)
+
+            self.log(
+                "train_loss",
+                loss,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=False,
+                logger=True,
+            )
+
+            self.logger.experiment.add_scalar(
+                "train_acc", acc, self.iteration,
+            )
+            self.log(
+                "train_acc",
+                acc,
+                on_step=False,
+                on_epoch=True,
+                prog_bar=True,
+                logger=True,
+            )
+
+        return {"loss": loss, "train_acc": acc}
 
     def validation_step(self, batch, batch_idx):
-        results = self.training_step(batch, batch_idx)
-        results["progress_bar"]["val_acc"] = results["progress_bar"]["train_acc"]
-        del results["progress_bar"]["train_acc"]
-        return results
+        results = self.training_step(batch, batch_idx, False)
 
-    def validation_epoch_end(self, val_step_outputs):
-        avg_val_loss = torch.tensor([x["loss"] for x in val_step_outputs]).mean()
-        avg_val_acc = torch.tensor(
-            [x["progress_bar"]["val_acc"] for x in val_step_outputs]
-        ).mean()
-        pbar = {"avg_val_acc": avg_val_acc}
-        return {"val_loss": avg_val_loss, "progress_bar": pbar}
+        self.logger.experiment.add_scalar(
+            "test_acc", results["train_acc"], self.iteration,
+        )
+
+        self.logger.experiment.add_scalar(
+            "test_loss", results["loss"], self.iteration,
+        )
+
+        self.log(
+            "test_loss",
+            results["loss"],
+            on_epoch=True,
+            prog_bar=False,
+            on_step=False,
+            logger=True,
+        )
+
+        self.log(
+            "test_acc",
+            results["train_acc"],
+            on_epoch=True,
+            prog_bar=False,
+            on_step=False,
+            logger=True,
+        )
+
+        return {"test_acc": results["train_acc"], "loss": results["loss"]}
+
+    def validation_epoch_end(self, test_step_outputs):
+        avg_test_loss = torch.tensor([x["loss"] for x in test_step_outputs]).mean()
+        avg_test_acc = torch.tensor([x["test_acc"] for x in test_step_outputs]).mean()
+
+        self.logger.experiment.add_scalar(
+            "avg_test_acc", avg_test_acc, self.iteration,
+        )
+
+        self.logger.experiment.add_scalar(
+            "avg_test_loss", avg_test_loss, self.iteration
+        )
+
+        self.log(
+            "avg_test_acc", avg_test_acc, on_epoch=True, prog_bar=True, on_step=False
+        )
 
 
-def test():
-    version = "b0"
-    dataset_name = "cifar10"
-    cifar_dm = CifarDataModule(batch_size=10, dataset_name=dataset_name)
-    model = EfficientNet(version=version, dataset_name=dataset_name)
-    logger = loggers.TensorBoardLogger(f"lightning_logs/{dataset_name}/{version}")
+def train(
+    dataset_name="cifar10",
+    version="b0",
+    batch_size=10,
+    epochs=100,
+    checkpoint=None,
+    output_path=None,
+    **model_params,
+):
+    cifar_dm = CifarDataModule(batch_size=batch_size, dataset_name=dataset_name)
+
+    model = EfficientNet(dataset_name=dataset_name, version=version)
+
+    if output_path is None:
+        output_path = f"lightning_logs/{dataset_name}/{version}"
+
+    logger = loggers.TensorBoardLogger(output_path)
 
     trainer = pl.Trainer(
-        progress_bar_refresh_rate=20, max_epochs=1, gpus=1, logger=logger
+        progress_bar_refresh_rate=20,
+        max_epochs=epochs,
+        gpus=1,
+        logger=logger,
+        resume_from_checkpoint=checkpoint,
     )
 
     trainer.fit(model, cifar_dm)
 
 
 if __name__ == "__main__":
-    test()
+    train()
