@@ -68,17 +68,13 @@ class EfficientNet(pl.LightningModule):
         optimizer = optim.SGD(self.parameters(), lr=1e-2)
         return optimizer
 
-    def loss_function(self, output, target):
-        one_hot = nn.functional.one_hot(target.long(), self.num_classes).to(self.device)
-        loss = nn.functional.binary_cross_entropy_with_logits(output, one_hot.float())
-
-        return loss
-
     def training_step(self, batch, idx_batch, log=True):
         self.iteration += 1
         x, y = batch
         z = self(x)
-        loss = self.loss(z, y)  # self.loss_function(z, y)
+        loss = self.loss(z, y)
+        print("y.shape = ", y.shape)
+        print("z.shape = ", z.shape)
         acc = train_accuracy(nn.functional.softmax(z, 1).argmax(1).cpu(), y.cpu())
 
         if log:
@@ -202,12 +198,14 @@ def test(model, dataset):
 
     for image, target in dataset:
         image = image.to(device)
-        target = target.numpy().tolist()
+        target_list = target.cpu().numpy().tolist()
+        target = target.to(device)
         logit = model(image)
-        losses.append(model.loss(logit, target))
+        loss = model.loss(logit, target)
+        losses.append(loss.detach().cpu().numpy().tolist())
         pred = nn.functional.softmax(logit, 1).argmax(1).cpu().numpy().tolist()
         preds.extend(pred)
-        targets.extend(target)
+        targets.extend(target_list)
     loss = np.array(losses).mean()
     acc = accuracy_score(targets, preds)
 
@@ -239,17 +237,8 @@ if __name__ == "__main__":
         "efficientnet-b0/default/version_1/checkpoints/epoch=3-step=66.ckpt"
     )
 
-    train_acc, test_acc = train_test("cifar10", 30, "efficientnet-b0", checkpoint)
+    loss, train_acc, test_acc = train_test("cifar10", 30, "efficientnet-b0", checkpoint)
 
-    # dataset = CifarDataModule(dataset_name="cifar10", batch_size=30)
-    #
-    # dataset.setup(None)
-    #
-    # model = EfficientNet.load_from_checkpoint(
-    #     checkpoint, model_name="efficientnet-b0", num_classes=10
-    # )
-    #
-    # test_acc = test(model, dataset.test_dataloader())
+    print(f"Loss: {loss}")
     print(f"Test: {test_acc}")
-    # train_acc = test(model, dataset.train_dataloader())
     print(f"Train: {train_acc}")

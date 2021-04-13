@@ -104,12 +104,12 @@ class CifarDataModule(pl.LightningDataModule):
 
         train = dataset("data", train=True, download=False, transform=train_transform)
 
-        val_size = int(len(train) * 0.99)
+        val_size = int(len(train) * 0.95)
         train_size = len(train) - val_size
 
         test = dataset("data", train=False, download=False, transform=test_transform)
 
-        # train, _ = random_split(train, [train_size, val_size])
+        train, _ = random_split(train, [train_size, val_size])
 
         self.train_dataset = train
         # self.val_dataset = val

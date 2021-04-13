@@ -204,12 +204,6 @@ class EfficientNet(pl.LightningModule):
         optimizer = optim.SGD(self.parameters(), lr=1e-2)
         return optimizer
 
-    def loss_function(self, output, target):
-        one_hot = nn.functional.one_hot(target.long(), self.num_classes).to(self.device)
-        loss = nn.functional.binary_cross_entropy_with_logits(output, one_hot.float())
-
-        return loss
-
     def training_step(self, batch, idx_batch, log=True):
         self.iteration += 1
         x, y = batch
