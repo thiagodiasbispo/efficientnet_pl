@@ -298,7 +298,6 @@ def train(
     epochs=100,
     checkpoint=None,
     output_path=None,
-    **model_params,
 ):
     cifar_dm = CifarDataModule(batch_size=batch_size, dataset_name=dataset_name)
 
