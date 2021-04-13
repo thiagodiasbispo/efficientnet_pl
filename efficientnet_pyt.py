@@ -206,6 +206,7 @@ def test(model, dataset):
         pred = nn.functional.softmax(logit, 1).argmax(1).cpu().numpy().tolist()
         preds.extend(pred)
         targets.extend(target_list)
+
     loss = np.array(losses).mean()
     acc = accuracy_score(targets, preds)
 
