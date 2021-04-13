@@ -20,17 +20,17 @@ base_model = [
     [6, 320, 1, 1, 3],
 ]
 
-# phi_values = {
-#     # tuple of: (phi_value, resolution, drop_rate)
-#     "b0": (0, 224, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
-#     "b1": (0.5, 240, 0.2),
-#     "b2": (1, 260, 0.3),
-#     "b3": (2, 300, 0.3),
-#     "b4": (3, 380, 0.4),
-#     "b5": (4, 456, 0.4),
-#     "b6": (5, 528, 0.5),
-#     "b7": (6, 600, 0.5),
-# }
+phi_values_old = {
+    # tuple of: (phi_value, resolution, drop_rate)
+    "b0": (0, 224, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
+    "b1": (0.5, 240, 0.2),
+    "b2": (1, 260, 0.3),
+    "b3": (2, 300, 0.3),
+    "b4": (3, 380, 0.4),
+    "b5": (4, 456, 0.4),
+    "b6": (5, 528, 0.5),
+    "b7": (6, 600, 0.5),
+}
 
 phi_values = {
     # tuple of: (width_coefficient, depth_coefficient, resolution, drop_rate)
@@ -147,8 +147,6 @@ class EfficientNet(pl.LightningModule):
         last_channels = ceil(1280 * width_factor)
 
         w, d, res, drop_rate = phi_values[version]
-
-        print(w, d, res, drop_rate)
 
         self.pool1 = nn.AdaptiveAvgPool2d((res, res))
         self.pool2 = nn.AdaptiveAvgPool2d(1)
