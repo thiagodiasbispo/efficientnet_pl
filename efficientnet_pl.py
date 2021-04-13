@@ -146,9 +146,9 @@ class EfficientNet(pl.LightningModule):
 
         last_channels = ceil(1280 * width_factor)
 
-        _, res, drop_rate = phi_values[version]
+        w, d, res, drop_rate = phi_values[version]
 
-        print(_, res, drop_rate)
+        print(w, d, res, drop_rate)
 
         self.pool1 = nn.AdaptiveAvgPool2d((res, res))
         self.pool2 = nn.AdaptiveAvgPool2d(1)
