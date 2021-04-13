@@ -34,14 +34,14 @@ base_model = [
 
 phi_values = {
     # tuple of: (phi_value, resolution, drop_rate)
-    "b0": (0, 32, 0.2),  # alpha, beta, gamma, depth = alpha ** phi
-    "b1": (0.5, int(32 * (240 / 224)), 0.2),
-    "b2": (1, int(32 * (260 / 224)), 0.3),
-    "b3": (2, int(32 * (300 / 224)), 0.3),
-    "b4": (3, int(32 * (380 / 224)), 0.4),
-    "b5": (4, int(32 * (456 / 224)), 0.4),
-    "b6": (5, int(32 * (528 / 224)), 0.5),
-    "b7": (6, int(32 * (600 / 224)), 0.5),
+    "b0": (0, 32, 0.2),
+    "b1": (0.5, int(32 * (240 / 224)), 0.2),  # resolution = 34
+    "b2": (1, int(32 * (260 / 224)), 0.3),  # resolution = 37
+    "b3": (2, int(32 * (300 / 224)), 0.3),  # resolution = 42
+    "b4": (3, int(32 * (380 / 224)), 0.4),  # resolution = 54
+    "b5": (4, int(32 * (456 / 224)), 0.4),  # resolution = 65
+    "b6": (5, int(32 * (528 / 224)), 0.5),  # resolution = 75
+    "b7": (6, int(32 * (600 / 224)), 0.5),  # resolution = 58
 }
 
 
@@ -293,7 +293,7 @@ class EfficientNet(pl.LightningModule):
 
 def train(
     dataset_name="cifar10",
-    version="b0",
+    version="b6",
     batch_size=10,
     epochs=100,
     checkpoint=None,

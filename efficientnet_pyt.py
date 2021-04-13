@@ -1,11 +1,12 @@
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 from efficientnet_pytorch import EfficientNet as EfficientNetPyt
 from pytorch_lightning import loggers
+from sklearn.metrics import accuracy_score
 from torch import optim
 from torch.nn import CrossEntropyLoss
-from sklearn.metrics import accuracy_score
 
 import config as cf
 from data_module import CifarDataModule
@@ -191,21 +192,26 @@ def train(
 def test(model, dataset):
     preds = []
     targets = []
+    losses = []
     device = (
         torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
     )
 
     model.to(device)
-
     model.eval()
+
     for image, target in dataset:
         image = image.to(device)
         target = target.numpy().tolist()
-        pred = nn.functional.softmax(model(image), 1).argmax(1).cpu().numpy().tolist()
+        logit = model(image)
+        losses.append(model.loss(logit, target))
+        pred = nn.functional.softmax(logit, 1).argmax(1).cpu().numpy().tolist()
         preds.extend(pred)
         targets.extend(target)
+    loss = np.array(losses).mean()
+    acc = accuracy_score(targets, preds)
 
-    return accuracy_score(targets, preds)
+    return loss, acc
 
 
 def train_test(dataset_name, batch_size, model_name, checkpoint):
@@ -219,10 +225,10 @@ def train_test(dataset_name, batch_size, model_name, checkpoint):
         checkpoint, model_name=model_name, num_classes=num_classes
     )
 
-    test_acc = test(model, dataset.test_dataloader())
-    train_acc = test(model, dataset.train_dataloader())
+    _, test_acc = test(model, dataset.test_dataloader())
+    train_loss, train_acc = test(model, dataset.train_dataloader())
 
-    return train_acc, test_acc
+    return train_loss, train_acc, test_acc
 
 
 if __name__ == "__main__":
