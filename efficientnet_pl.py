@@ -1,3 +1,8 @@
+"""
+    Source: https://github.com/aladdinpersson/Machine-Learning-Collection/blob/master/ML/Pytorch/CNN_architectures/pytorch_efficientnet.py
+"""
+
+
 from math import ceil
 
 import pytorch_lightning as pl
